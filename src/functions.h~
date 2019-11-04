@@ -1,0 +1,9 @@
+#include "GL/glew.h"
+#include "cuda_runtime.h"
+#include <stdlib.h>
+
+void DrawGridXZ( float ox, float oy, float oz, int w, int h, float sz );
+void ShowAxes();
+
+inline bool CUDA_MALLOC( void ** devPtr, size_t size);
+inline bool CUDA_MEMCPY( void * dst, const void * src, size_t count, enum cudaMemcpyKind kind );
