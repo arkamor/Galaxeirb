@@ -21,10 +21,13 @@ struct star{ //44o
 };
 
 __global__ void kernel_acc_calc(struct star *ptr){
-	struct star p[Nb_de_pts];
-	memcpy(&p, (const char *)ptr, Nb_de_pts * sizeof(p));
-	float dist;
-	for (int i=0;i<Nb_de_pts;i++){ // 1st for each particle ACC calc
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < Nb_de_pts) { 
+
+		struct star p[Nb_de_pts];
+		memcpy(&p, (const char *)ptr, Nb_de_pts * sizeof(p));
+
+		float dist;
 		for(int j=0;j<Nb_de_pts;j++){
 			if(j != i){
 				dist = sqrtf(_Square(p[j].pos.pox - p[i].pos.pox)+_Square(p[j].pos.poy - p[i].pos.poy)+_Square(p[j].pos.poz - p[i].pos.poz));
@@ -34,8 +37,9 @@ __global__ void kernel_acc_calc(struct star *ptr){
 				p[i].vel.vez += ((p[j].pos.poz - p[i].pos.poz) * mass_factor_X_damping_factor * (1/(_Cube(dist))) * p[j].mas);
 			}
 		}
+		memcpy(ptr, p, Nb_de_pts * sizeof(p));
 	}
-	memcpy(ptr, p, Nb_de_pts * sizeof(p));
+	
 }
 
 void acc_calc(int nblocks, int nthreads, struct star * in_addr){

@@ -173,7 +173,6 @@ int main( int argc, char **argv){
 
 		memcpy(hostSrc,particles,Nb_de_pts * sizeof(struct star));
 
-
 		int numThreads = 1024;
 		int numBlocks = (Nb_de_pts+(numThreads-1))/numThreads;
 
@@ -313,6 +312,7 @@ int main( int argc, char **argv){
 
 		glPointSize(1.0);
 		glBegin(GL_POINTS);
+		
 		for (int k=0;k<Nb_de_pts;k++){
 			glColor3f(particles[k].galax, 1-particles[k].galax , 0);
 			glVertex3f(particles[k].pos.pox, particles[k].pos.poy, particles[k].pos.poz);
