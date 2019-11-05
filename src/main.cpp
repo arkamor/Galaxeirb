@@ -46,11 +46,11 @@
 		float vez; //4o
 	};
 
-	struct star{ //44o
+	struct star{ //32o
 		float mas; //4o
-		struct position pos; //16o
-		struct velocite vel; //16o
-		int galax; //1 milk 0 andro //8o
+		struct position pos; //12o
+		struct velocite vel; //12o
+		int galax; //1 milk 0 andro //4o
 	};
 
 #pragma endregion constants
@@ -158,25 +158,17 @@ int main( int argc, char **argv){
 		}
     }
 
-	//for(int i=0;i<Nb_de_pts;i++) printf("Li:%5d, Ms:%.8f, Px:%.5f, Py:%.5f, Pz:%.5f, Vx:%.5f, Vy:%.5f, Vz:%.5f\n", i*intervall, particles[i].mas, particles[i].pos.pox, particles[i].pos.poy, particles[i].pos.poz, particles[i].vel.vex, particles[i].vel.vey, particles[i].vel.vez);
 	#pragma region init_GPU
-		//cudaError_t cudaStatus = cudaSetDevice(0);
-		if(cudaSetDevice(0) != cudaSuccess) printf( "error: unable to setup cuda device\n");
 
-		struct star *device_ptr = NULL;
+		cudaError_t cudaStatus;
+		cudaStatus = cudaSetDevice(0);
+		if(cudaStatus != cudaSuccess) printf( "error: unable to setup cuda device\n");
 
-		void *hostSrc = NULL;
+		struct star *deviceIn  = NULL;
+		struct star *deviceOut = NULL;
 
-		CUDA_MALLOC((void**)&device_ptr, Nb_de_pts * sizeof(struct star));
-
-		hostSrc = malloc(Nb_de_pts * sizeof(struct star));
-
-		memcpy(hostSrc,particles,Nb_de_pts * sizeof(struct star));
-
-		int numThreads = 1024;
-		int numBlocks = (Nb_de_pts+(numThreads-1))/numThreads;
-
-		CUDA_MEMCPY(device_ptr, hostSrc, Nb_de_pts * sizeof(struct star), cudaMemcpyHostToDevice);
+		CUDA_MALLOC((void**)&deviceIn,  sizeof(particles));
+		CUDA_MALLOC((void**)&deviceOut, sizeof(particles));
 		
 	#pragma endregion init_GPU
 	// Infinite loop
@@ -296,13 +288,14 @@ int main( int argc, char **argv){
 		#pragma endregion init_nd_calc_SDL
 
 		// Simulation should be computed here
+		CUDA_MEMCPY(deviceIn, particles, sizeof(particles), cudaMemcpyHostToDevice); // Feed GPU with data
 
-		acc_calc(NUM_BLOCKS_GPU, NUM_THREADS_GPU, device_ptr);
+		acc_calc(NUM_BLOCKS_GPU, NUM_THREADS_GPU, deviceIn, deviceOut); // Make calc
 
-		if(cudaDeviceSynchronize() != cudaSuccess) printf("error: unable to synchronize threads\n");
+		cudaStatus = cudaDeviceSynchronize(); // Wait for the end of calc
+		if(cudaStatus != cudaSuccess) printf("error: unable to synchronize threads\n");
 
-		CUDA_MEMCPY(particles, device_ptr, Nb_de_pts * sizeof(struct star), cudaMemcpyDeviceToHost);
-
+		CUDA_MEMCPY(particles, deviceOut, sizeof(particles), cudaMemcpyDeviceToHost); // Retrieve data
 
 		for (int k=0;k<Nb_de_pts;k++){ // 2nd for each particle
 			particles[k].pos.pox += (particles[k].vel.vex * time_factor);

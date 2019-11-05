@@ -13,20 +13,20 @@ struct velocite{
 	float vez; //4o
 };
 
-struct star{ //44o
+struct star{ //32o
 	float mas; //4o
-	struct position pos; //16o
-	struct velocite vel; //16o
-	int galax; //1 milk 0 andro //8o
+	struct position pos; //12o
+	struct velocite vel; //12o
+	int galax; //1 milk 0 andro //4o
 };
 
-__global__ void kernel_acc_calc(struct star *ptr){
+__global__ void kernel_acc_calc(struct star *deviceIn, struct star *deviceOut){
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	struct star p[Nb_de_pts];
+
+	memcpy(p, deviceIn, sizeof(p));	
+	//memcpy
 	if (i < Nb_de_pts) { 
-
-		struct star p[Nb_de_pts];
-		memcpy(&p, (const char *)ptr, Nb_de_pts * sizeof(p));
-
 		float dist;
 		for(int j=0;j<Nb_de_pts;j++){
 			if(j != i){
@@ -37,13 +37,14 @@ __global__ void kernel_acc_calc(struct star *ptr){
 				p[i].vel.vez += ((p[j].pos.poz - p[i].pos.poz) * mass_factor_X_damping_factor * (1/(_Cube(dist))) * p[j].mas);
 			}
 		}
-		memcpy(ptr, p, Nb_de_pts * sizeof(p));
 	}
-	
+
+	memcpy(deviceOut, p, sizeof(p));
+
 }
 
-void acc_calc(int nblocks, int nthreads, struct star * in_addr){
-	kernel_acc_calc<<<nblocks, nthreads>>>(in_addr);
+void acc_calc(int nblocks, int nthreads, struct star * in_addr, struct star * out_addr){
+	kernel_acc_calc<<<nblocks, nthreads>>>(in_addr,out_addr);
 }
 
 

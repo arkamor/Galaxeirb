@@ -3,6 +3,7 @@
 
 #include "cuda.h"
 
-void acc_calc(int nblocks, int nthreads, struct star * in_addr);
+void acc_calc(int nblocks, int nthreads, struct star * in_addr, struct star * out_addr);
+
 
 #endif
