@@ -7,7 +7,7 @@
 #define _Square(_x) ((_x)*(_x))
 #define _Cube(_x) ((_x)*(_x)*(_x))
 
-#define Nb_de_pts      1024 //81920
+
 #define mass_factor    10
 #define time_factor    0.1
 #define damping_factor 1
@@ -19,7 +19,6 @@
 #define NUM_THREADS_CPU 4
 
 #define NUM_THREADS_GPU 512
-#define NUM_BLOCKS_GPU (Nb_de_pts+(NUM_THREADS_GPU-1))/NUM_THREADS_GPU
 
 
 
