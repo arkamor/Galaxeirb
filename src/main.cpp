@@ -34,25 +34,6 @@
 	static bool g_showGrid = false;
 	static bool g_showAxes = true;
 
-	struct position{
-		float pox; //4o
-		float poy; //4o
-		float poz; //4o
-	};	
-
-	struct velocite{
-		float vex; //4o
-		float vey; //4o
-		float vez; //4o
-	};
-
-	struct star{ //32o
-		float mas; //4o
-		struct position pos; //12o
-		struct velocite vel; //12o
-		int galax; //1 milk 0 andro //4o
-	};
-
 #pragma endregion constants
 
 int main( int argc, char **argv){
@@ -128,29 +109,39 @@ int main( int argc, char **argv){
 
 	#pragma endregion initializing
 
-	struct star particles[Nb_de_pts];
-
+	float pox[Nb_de_pts];
+	float poy[Nb_de_pts];
+	float poz[Nb_de_pts];
+	
+	float vex[Nb_de_pts];
+	float vey[Nb_de_pts];
+	float vez[Nb_de_pts];
+	
+	float mas[Nb_de_pts];
+	
+	float gal[Nb_de_pts];
+	
 
 	int line_in_file=0;
 
-	fscanf(fd,"%f %f %f %f %f %f %f \n",	&particles[0].mas,
-											&particles[0].pos.pox,
-											&particles[0].pos.poy,
-											&particles[0].pos.poz,
-											&particles[0].vel.vex,
-											&particles[0].vel.vey,
-											&particles[0].vel.vez);
-	particles[0].galax = 1; // Milky Way
+	fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[0],
+											&pox[0],
+											&poy[0],
+											&poz[0],
+											&vex[0],
+											&vey[0],
+											&vez[0]);
+	gal[0] = 1; // Milky Way
 	for(int j=1;j<Nb_de_pts;j++){
-		fscanf(fd,"%f %f %f %f %f %f %f \n",	&particles[j].mas,
-												&particles[j].pos.pox,
-												&particles[j].pos.poy,
-												&particles[j].pos.poz,
-												&particles[j].vel.vex,
-												&particles[j].vel.vey,
-												&particles[j].vel.vez);
+		fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[j],
+												&pox[j],
+												&poy[j],
+												&poz[j],
+												&vex[j],
+												&vey[j],
+												&vez[j]);
 		line_in_file++;
-		particles[j].galax = ((line_in_file < 16384) || ((line_in_file > 32768) && (line_in_file < 40960)) || ((line_in_file > 49152) && (line_in_file < 65536))); //1 Milky way
+		gal[j] = ((line_in_file < 16384) || ((line_in_file > 32768) && (line_in_file < 40960)) || ((line_in_file > 49152) && (line_in_file < 65536))); //1 Milky way
 
         for(int i=0;i<intervall-1;i++) {
 			fgets(test,200,fd);
@@ -163,15 +154,41 @@ int main( int argc, char **argv){
 		cudaError_t cudaStatus;
 		cudaStatus = cudaSetDevice(0);
 		if(cudaStatus != cudaSuccess) printf( "error: unable to setup cuda device\n");
+		else printf( "Cuda set up ok\n");
 
-		struct star *deviceIn  = NULL;
-		struct star *deviceOut = NULL;
+		// In pointer
+		float *deviceIn_pox  = NULL;
+		float *deviceIn_poy  = NULL;
+		float *deviceIn_poz  = NULL;
+		
+		float *deviceIn_vex  = NULL;
+		float *deviceIn_vey  = NULL;
+		float *deviceIn_vez  = NULL;
+		
+		float *deviceIn_mas  = NULL;
+		
+		// Out pointer
+		
+		float *deviceOut_vex = NULL;
+		float *deviceOut_vey = NULL;
+		float *deviceOut_vez = NULL;
+		
+		// Memory allocation In
 
-		CUDA_MALLOC((void**)&deviceIn,  sizeof(particles));
-		CUDA_MALLOC((void**)&deviceOut, sizeof(particles));
+		CUDA_MALLOC((void**)&deviceIn_mas, sizeof(float)*Nb_de_pts);
+
+		CUDA_MALLOC((void**)&deviceIn_pox, sizeof(float)*Nb_de_pts);
+		CUDA_MALLOC((void**)&deviceIn_poy, sizeof(float)*Nb_de_pts);
+		CUDA_MALLOC((void**)&deviceIn_poz, sizeof(float)*Nb_de_pts);
+		
+		// Memory allocation Out
+
+		CUDA_MALLOC((void**)&deviceOut_vex, sizeof(float)*Nb_de_pts);
+		CUDA_MALLOC((void**)&deviceOut_vey, sizeof(float)*Nb_de_pts);
+		CUDA_MALLOC((void**)&deviceOut_vez, sizeof(float)*Nb_de_pts);
+		
 		
 	#pragma endregion init_GPU
-	// Infinite loop
 
 	while (!done){
 		#pragma region init_nd_calc_SDL
@@ -204,24 +221,24 @@ int main( int argc, char **argv){
 						line_in_file=0;
 						fclose(fd);
 						fd = fopen("dubinski.tab","r");
-						fscanf(fd,"%f %f %f %f %f %f %f \n",	&particles[0].mas,
-																&particles[0].pos.pox,
-																&particles[0].pos.poy,
-																&particles[0].pos.poz,
-																&particles[0].vel.vex,
-																&particles[0].vel.vey,
-																&particles[0].vel.vez);
-						particles[0].galax = 1; // Milky Way
+						fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[0],
+																&pox[0],
+																&poy[0],
+																&poz[0],
+																&vex[0],
+																&vey[0],
+																&vez[0]);
+						gal[0] = 1; // Milky Way
 						for(int j=1;j<Nb_de_pts;j++){
-							fscanf(fd,"%f %f %f %f %f %f %f \n",	&particles[j].mas,
-																	&particles[j].pos.pox,
-																	&particles[j].pos.poy,
-																	&particles[j].pos.poz,
-																	&particles[j].vel.vex,
-																	&particles[j].vel.vey,
-																	&particles[j].vel.vez);
+							fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[j],
+																	&pox[j],
+																	&poy[j],
+																	&poz[j],
+																	&vex[j],
+																	&vey[j],
+																	&vez[j]);
 							line_in_file++;
-							particles[j].galax = ((line_in_file < 16384) || ((line_in_file > 32768) && (line_in_file < 40960)) || ((line_in_file > 49152) && (line_in_file < 65536))); //1 Milky way
+							gal[j] = ((line_in_file < 16384) || ((line_in_file > 32768) && (line_in_file < 40960)) || ((line_in_file > 49152) && (line_in_file < 65536))); //1 Milky way
 
 							for(int i=0;i<intervall-1;i++) {
 								fgets(test,200,fd);
@@ -288,29 +305,70 @@ int main( int argc, char **argv){
 		#pragma endregion init_nd_calc_SDL
 
 		// Simulation should be computed here
-		CUDA_MEMCPY(deviceIn, particles, sizeof(particles), cudaMemcpyHostToDevice); // Feed GPU with data
 
-		acc_calc(NUM_BLOCKS_GPU, NUM_THREADS_GPU, deviceIn, deviceOut); // Make calc
 
+		// Memory feed In
+
+		for (int o=0;o<10;o++) printf("bf vex(%d):%.4f\n",o,vex[o]);
+
+		 
+		CUDA_MEMCPY(deviceIn_pox, pox, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
+		CUDA_MEMCPY(deviceIn_poy, poy, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
+		CUDA_MEMCPY(deviceIn_poz, poz, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
+		
+		CUDA_MEMCPY(deviceIn_mas, mas, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
+		
+		acc_calc(NUM_BLOCKS_GPU, NUM_THREADS_GPU, deviceIn_mas, deviceIn_pox, deviceIn_poy, deviceIn_poz, deviceOut_vex, deviceOut_vey, deviceOut_vez); // Make calc
+		
 		cudaStatus = cudaDeviceSynchronize(); // Wait for the end of calc
 		if(cudaStatus != cudaSuccess) printf("error: unable to synchronize threads\n");
 
-		CUDA_MEMCPY(particles, deviceOut, sizeof(particles), cudaMemcpyDeviceToHost); // Retrieve data
+		CUDA_MEMCPY(vex, deviceOut_vex, sizeof(float)*Nb_de_pts, cudaMemcpyDeviceToHost); // Feed GPU with data
+		CUDA_MEMCPY(vey, deviceOut_vey, sizeof(float)*Nb_de_pts, cudaMemcpyDeviceToHost); // Feed GPU with data
+		CUDA_MEMCPY(vez, deviceOut_vez, sizeof(float)*Nb_de_pts, cudaMemcpyDeviceToHost); // Feed GPU with data
+		
+		/*
+		for(int i =0;i < Nb_de_pts;i++){
+			float dist;
+			float tmp;
 
+			float tx = 0.0;
+			float ty = 0.0;
+			float tz = 0.0;
+
+			for(int j=0;j<Nb_de_pts;j++){
+
+				if(j != i){
+					dist = sqrtf(_Square(pox[j] - pox[i])+_Square(poy[j] - poy[i])+_Square(poz[j] - poz[i]));
+					if(dist < 1.0) dist = 1.0;
+					tmp = mass_factor_X_damping_factor * (1/_Cube(dist)) * mas[i];
+					tx += ((pox[j] - pox[i]) * tmp);
+					ty += ((poy[j] - poy[i]) * tmp);
+					tz += ((poz[j] - poz[i]) * tmp);
+				}
+			}
+			vex[i] = tx;
+			vey[i] = ty;
+			vez[i] = tz;
+		}
+		*/
+		for (int o=0;o<10;o++) printf("af vex(%d):%.4f\n",o,vex[o]);
+		
 		for (int k=0;k<Nb_de_pts;k++){ // 2nd for each particle
-			particles[k].pos.pox += (particles[k].vel.vex * time_factor);
-			particles[k].pos.poy += (particles[k].vel.vey * time_factor);
-			particles[k].pos.poz += (particles[k].vel.vez * time_factor);
+			pox[k] += (vex[k] * time_factor);
+			poy[k] += (vey[k] * time_factor);
+			poz[k] += (vez[k] * time_factor);
 		}
 
 		glPointSize(1.0);
 		glBegin(GL_POINTS);
 		
 		for (int k=0;k<Nb_de_pts;k++){
-			glColor3f(particles[k].galax, 1-particles[k].galax , 0);
-			glVertex3f(particles[k].pos.pox, particles[k].pos.poy, particles[k].pos.poz);
+			glColor3f(gal[k], 1-gal[k] , 0);
+			glVertex3f(pox[k], poy[k], poz[k]);
 		}
 		glEnd();
+		
 		
 		#pragma region FPS_nd_draw
 

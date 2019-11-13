@@ -9,7 +9,7 @@
 
 #define Nb_de_pts      1024 //81920
 #define mass_factor    10
-#define time_factor    0.08
+#define time_factor    0.1
 #define damping_factor 1
 #define mass_factor_X_damping_factor 10
 
