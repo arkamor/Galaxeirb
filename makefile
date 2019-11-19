@@ -4,9 +4,11 @@ CC 		= g++
 NVCC 		= nvcc
 LINKER 		= g++ -o
 
+#Mon pc
+#CUDA_INSTALL_PATH ?= /opt/cuda
 
-CUDA_INSTALL_PATH ?= /opt/cuda
-#CUDA_INSTALL_PATH ?= /usr/local/cuda
+#Carte Nvidia
+CUDA_INSTALL_PATH ?= /usr/local/cuda
 
 INCD 		= -I$(CUDA_INSTALL_PATH)/include
 LIBS 		= -L$(CUDA_INSTALL_PATH)/lib -lcudart
