@@ -6,17 +6,12 @@
 	#include <math.h>
 	#include <sys/time.h>
 
-	#include <omp.h>
-
 	#include "functions.h"
 
 	#include "SDL2/SDL.h"
 	#include "SDL2/SDL_opengl.h"
 
 	#include "text.h"
-
-	#include "cuda_runtime.h"
-	#include "kernel.cuh"
 
 #pragma endregion inc_lib
 
@@ -36,16 +31,26 @@
 
 #pragma endregion constants
 
+
+
 int main( int argc, char **argv){
 	#pragma region initializing
-		omp_set_num_threads(NUM_THREADS_CPU);
 
+		int Nb_de_pts;
+		if(argc == 2){
+			
+			int val = atoi(argv[1]);
+
+			if(!(val%1024) && val!=0 && val<=81920) Nb_de_pts=val;
+			else Nb_de_pts=1024; //81920
+		} else Nb_de_pts=1024; //81920
+		
 		SDL_Event event;
 		SDL_Window * window;
 		SDL_DisplayMode current;
 		
-		int width = windows_width;//640;
-		int height = windows_height;//480;
+		int width = windows_width;//640
+		int height = windows_height;//480
 
 		bool done = false;
 
@@ -109,86 +114,36 @@ int main( int argc, char **argv){
 
 	#pragma endregion initializing
 
-	float pox[Nb_de_pts];
-	float poy[Nb_de_pts];
-	float poz[Nb_de_pts];
+	float *pox = (float *)malloc(sizeof(float) * Nb_de_pts);
+	float *poy = (float *)malloc(sizeof(float) * Nb_de_pts);
+	float *poz = (float *)malloc(sizeof(float) * Nb_de_pts);
 	
-	float vex[Nb_de_pts];
-	float vey[Nb_de_pts];
-	float vez[Nb_de_pts];
+	float *vex = (float *)malloc(sizeof(float) * Nb_de_pts);
+	float *vey = (float *)malloc(sizeof(float) * Nb_de_pts);
+	float *vez = (float *)malloc(sizeof(float) * Nb_de_pts);
 	
-	float mas[Nb_de_pts];
+	float *acx = (float *)malloc(sizeof(float) * Nb_de_pts);
+	float *acy = (float *)malloc(sizeof(float) * Nb_de_pts);
+	float *acz = (float *)malloc(sizeof(float) * Nb_de_pts);
 	
-	float gal[Nb_de_pts];
+	float *mas = (float *)malloc(sizeof(float) * Nb_de_pts);
+	
+	float *gal = (float *)malloc(sizeof(float) * Nb_de_pts);
 	
 
 	int line_in_file=0;
-
-	fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[0],
-											&pox[0],
-											&poy[0],
-											&poz[0],
-											&vex[0],
-											&vey[0],
-											&vez[0]);
+	fscanf(fd,"%f %f %f %f %f %f %f \n",&mas[0],&pox[0],&poy[0],&poz[0],&vex[0],&vey[0],&vez[0]);
 	gal[0] = 1; // Milky Way
 	for(int j=1;j<Nb_de_pts;j++){
-		fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[j],
-												&pox[j],
-												&poy[j],
-												&poz[j],
-												&vex[j],
-												&vey[j],
-												&vez[j]);
+		fscanf(fd,"%f %f %f %f %f %f %f \n",&mas[j],&pox[j],&poy[j],&poz[j],&vex[j],&vey[j],&vez[j]);
 		line_in_file++;
 		gal[j] = ((line_in_file < 16384) || ((line_in_file > 32768) && (line_in_file < 40960)) || ((line_in_file > 49152) && (line_in_file < 65536))); //1 Milky way
 
-        for(int i=0;i<intervall-1;i++) {
+		for(int i=0;i<intervall-1;i++) {
 			fgets(test,200,fd);
 			line_in_file++;
 		}
-    }
-
-	#pragma region init_GPU
-
-		cudaError_t cudaStatus;
-		cudaStatus = cudaSetDevice(0);
-		if(cudaStatus != cudaSuccess) printf( "error: unable to setup cuda device\n");
-		else printf( "Cuda set up ok\n");
-
-		// In pointer
-		float *deviceIn_pox  = NULL;
-		float *deviceIn_poy  = NULL;
-		float *deviceIn_poz  = NULL;
-		
-		float *deviceIn_vex  = NULL;
-		float *deviceIn_vey  = NULL;
-		float *deviceIn_vez  = NULL;
-		
-		float *deviceIn_mas  = NULL;
-		
-		// Out pointer
-		
-		float *deviceOut_vex = NULL;
-		float *deviceOut_vey = NULL;
-		float *deviceOut_vez = NULL;
-		
-		// Memory allocation In
-
-		CUDA_MALLOC((void**)&deviceIn_mas, sizeof(float)*Nb_de_pts);
-
-		CUDA_MALLOC((void**)&deviceIn_pox, sizeof(float)*Nb_de_pts);
-		CUDA_MALLOC((void**)&deviceIn_poy, sizeof(float)*Nb_de_pts);
-		CUDA_MALLOC((void**)&deviceIn_poz, sizeof(float)*Nb_de_pts);
-		
-		// Memory allocation Out
-
-		CUDA_MALLOC((void**)&deviceOut_vex, sizeof(float)*Nb_de_pts);
-		CUDA_MALLOC((void**)&deviceOut_vey, sizeof(float)*Nb_de_pts);
-		CUDA_MALLOC((void**)&deviceOut_vez, sizeof(float)*Nb_de_pts);
-		
-		
-	#pragma endregion init_GPU
+	}
 
 	while (!done){
 		#pragma region init_nd_calc_SDL
@@ -221,22 +176,10 @@ int main( int argc, char **argv){
 						line_in_file=0;
 						fclose(fd);
 						fd = fopen("dubinski.tab","r");
-						fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[0],
-																&pox[0],
-																&poy[0],
-																&poz[0],
-																&vex[0],
-																&vey[0],
-																&vez[0]);
+						fscanf(fd,"%f %f %f %f %f %f %f \n",&mas[0],&pox[0],&poy[0],&poz[0],&vex[0],&vey[0],&vez[0]);
 						gal[0] = 1; // Milky Way
 						for(int j=1;j<Nb_de_pts;j++){
-							fscanf(fd,"%f %f %f %f %f %f %f \n",	&mas[j],
-																	&pox[j],
-																	&poy[j],
-																	&poz[j],
-																	&vex[j],
-																	&vey[j],
-																	&vez[j]);
+							fscanf(fd,"%f %f %f %f %f %f %f \n",&mas[j],&pox[j],&poy[j],&poz[j],&vex[j],&vey[j],&vez[j]);
 							line_in_file++;
 							gal[j] = ((line_in_file < 16384) || ((line_in_file > 32768) && (line_in_file < 40960)) || ((line_in_file > 49152) && (line_in_file < 65536))); //1 Milky way
 
@@ -306,55 +249,32 @@ int main( int argc, char **argv){
 
 		// Simulation should be computed here
 
-
-		// Memory feed In
-
-		for (int o=0;o<10;o++) printf("bf vex(%d):%.4f\n",o,vex[o]);
-
-		 
-		CUDA_MEMCPY(deviceIn_pox, pox, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
-		CUDA_MEMCPY(deviceIn_poy, poy, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
-		CUDA_MEMCPY(deviceIn_poz, poz, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
-		
-		CUDA_MEMCPY(deviceIn_mas, mas, sizeof(float)*Nb_de_pts, cudaMemcpyHostToDevice); // Feed GPU with data
-		
-		acc_calc(NUM_BLOCKS_GPU, NUM_THREADS_GPU, deviceIn_mas, deviceIn_pox, deviceIn_poy, deviceIn_poz, deviceOut_vex, deviceOut_vey, deviceOut_vez); // Make calc
-		
-		cudaStatus = cudaDeviceSynchronize(); // Wait for the end of calc
-		if(cudaStatus != cudaSuccess) printf("error: unable to synchronize threads\n");
-
-		CUDA_MEMCPY(vex, deviceOut_vex, sizeof(float)*Nb_de_pts, cudaMemcpyDeviceToHost); // Feed GPU with data
-		CUDA_MEMCPY(vey, deviceOut_vey, sizeof(float)*Nb_de_pts, cudaMemcpyDeviceToHost); // Feed GPU with data
-		CUDA_MEMCPY(vez, deviceOut_vez, sizeof(float)*Nb_de_pts, cudaMemcpyDeviceToHost); // Feed GPU with data
-		
-		/*
-		for(int i =0;i < Nb_de_pts;i++){
-			float dist;
-			float tmp;
-
-			float tx = 0.0;
-			float ty = 0.0;
-			float tz = 0.0;
+		for(int i=0;i<Nb_de_pts;i++){
+			acx[i] = 0.0;
+			acy[i] = 0.0;
+			acz[i] = 0.0;
 
 			for(int j=0;j<Nb_de_pts;j++){
 
 				if(j != i){
-					dist = sqrtf(_Square(pox[j] - pox[i])+_Square(poy[j] - poy[i])+_Square(poz[j] - poz[i]));
+
+					float dist = sqrtf(_Square(pox[j] - pox[i]) + _Square(poy[j] - poy[i]) + _Square(poz[j] - poz[i]));
 					if(dist < 1.0) dist = 1.0;
-					tmp = mass_factor_X_damping_factor * (1/_Cube(dist)) * mas[i];
-					tx += ((pox[j] - pox[i]) * tmp);
-					ty += ((poy[j] - poy[i]) * tmp);
-					tz += ((poz[j] - poz[i]) * tmp);
+
+					float tmp = mass_factor * damping_factor * (1/(_Cube(dist))) * mas[j];
+
+					acx[i] += ((pox[j] - pox[i]) * tmp);
+					acy[i] += ((poy[j] - poy[i]) * tmp);
+					acz[i] += ((poz[j] - poz[i]) * tmp);
 				}
 			}
-			vex[i] = tx;
-			vey[i] = ty;
-			vez[i] = tz;
 		}
-		*/
-		for (int o=0;o<10;o++) printf("af vex(%d):%.4f\n",o,vex[o]);
 		
 		for (int k=0;k<Nb_de_pts;k++){ // 2nd for each particle
+			vex[k] += acx[k];
+			vey[k] += acy[k];
+			vez[k] += acz[k];
+
 			pox[k] += (vex[k] * time_factor);
 			poy[k] += (vey[k] * time_factor);
 			poz[k] += (vez[k] * time_factor);
